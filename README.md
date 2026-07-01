@@ -6,6 +6,12 @@ Copilot CLI ships as a **Node single-executable-app** — a glibc Node runtime b
 
 > Runtime only — no account data. First `copilot` run does GitHub device login (needs a Copilot subscription).
 
+## Demo — Copilot explaining its own install
+
+Asked how it's running, Copilot inspects its own launcher on-device (Android 17, Pixel 9 Pro XL) and explains the patchelf'd glibc loader + `LD_PRELOAD` resolv shim on a Node single-executable-app:
+
+![Copilot explains its native install](screenshots/copilot-explains-native.png)
+
 ## How it works
 
 | Piece | Role |
@@ -54,6 +60,23 @@ $PREFIX/lib/claude-resolvfix.so   # DNS shim (shared)
 ```bash
 bash uninstall.sh
 ```
+
+## Part of the native-Termux CLI family
+
+One-command **native, no-proot** installers for AI coding CLIs on Termux — same toolkit, one per agent:
+
+- [claude-code-termux-native](https://github.com/Thr45hx/claude-code-termux-native) — Claude Code
+- [antigravity-cli-termux-native](https://github.com/Thr45hx/antigravity-cli-termux-native) — Google Antigravity
+- [grok-cli-termux-native](https://github.com/Thr45hx/grok-cli-termux-native) — xAI Grok Build
+- [opencode-termux-native](https://github.com/Thr45hx/opencode-termux-native) — OpenCode
+- [copilot-cli-termux-native](https://github.com/Thr45hx/copilot-cli-termux-native) — GitHub Copilot
+
+## Notes
+
+- **AI-assisted:** built and reverse-engineered with AI help — a daily-driver, not a toy. Provided as-is.
+- **Tested on:** Android 17, rooted **Pixel 9 Pro XL** (Tensor G4, aarch64).
+- **Root / no-root:** **No root required** — the DNS shim is fully userland. (Needs a GitHub Copilot subscription.)
+- **License:** [MIT](./LICENSE).
 
 ---
 
