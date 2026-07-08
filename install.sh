@@ -15,7 +15,8 @@ die(){ printf '\033[1;31m[copilot-native] ERROR:\033[0m %s\n' "$*" >&2; exit 1; 
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 HOME_DIR="${HOME:-/data/data/com.termux/files/home}"
 GL="$PREFIX/glibc"; GLD="$GL/lib/ld-linux-aarch64.so.1"
-SHIM="$PREFIX/lib/claude-resolvfix.so"; RESOLV="$PREFIX/etc/resolv.conf"
+SHIM="$PREFIX/lib/claude-resolvfix.so"; EXECSHIM="$PREFIX/lib/copilot-sea-exec.so"
+RESOLV="$PREFIX/etc/resolv.conf"
 DIR="$HOME_DIR/agents/copilot"
 PKG="@github/copilot-linux-arm64"
 RAW="https://raw.githubusercontent.com/Thr45hx/copilot-cli-termux-native/main"
@@ -24,11 +25,11 @@ RAW="https://raw.githubusercontent.com/Thr45hx/copilot-cli-termux-native/main"
 case "$(uname -m)" in aarch64|arm64) ;; *) die "arm64/aarch64 only (found $(uname -m)).";; esac
 
 SRC="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
-need=0; for f in launcher.sh fix_resolv.c; do [ -f "$SRC/$f" ] || need=1; done
+need=0; for f in launcher.sh fix_resolv.c copilot-sea-exec.c; do [ -f "$SRC/$f" ] || need=1; done
 if [ "$need" = 1 ]; then
   command -v curl >/dev/null || die "curl required to fetch sources."
   SRC="$(mktemp -d)"; say "Fetching source files…"
-  for f in launcher.sh fix_resolv.c; do curl -fsSL "$RAW/$f" -o "$SRC/$f" || die "fetch $f failed"; done
+  for f in launcher.sh fix_resolv.c copilot-sea-exec.c; do curl -fsSL "$RAW/$f" -o "$SRC/$f" || die "fetch $f failed"; done
 fi
 
 say "Installing base packages (clang curl tar ca-certificates)…"
@@ -52,6 +53,17 @@ if [ ! -f "$SHIM" ]; then
   ) || { rm -rf "$b"; die "shim build failed."; }
   install -m644 "$b/libclaude-resolvfix.so" "$SHIM"; rm -rf "$b"
 fi
+
+if [ ! -f "$EXECSHIM" ]; then
+  say "Building exec shim (copilot-sea-exec.so — fixes the in-app /update respawn)…"
+  b="$(mktemp -d)"; cp "$SRC/copilot-sea-exec.c" "$b/"
+  ( cd "$b"
+    clang --target=aarch64-linux-gnu -fPIC -O2 -fno-stack-protector -c copilot-sea-exec.c -o copilot-sea-exec.o
+    "$GL/bin/ld" -shared -o libcopilot-sea-exec.so copilot-sea-exec.o -L"$GL/lib" -l:libc.so.6 -l:libdl.so.2
+  ) || { rm -rf "$b"; die "exec shim build failed."; }
+  install -m644 "$b/libcopilot-sea-exec.so" "$EXECSHIM"; rm -rf "$b"
+fi
+
 if [ ! -s "$RESOLV" ] || ! grep -q '^nameserver' "$RESOLV" 2>/dev/null; then
   mkdir -p "$(dirname "$RESOLV")"; printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > "$RESOLV"
 fi
